@@ -9,3 +9,5 @@ CREATE TABLE `Ventas` (
   KEY `fk_ventas_cliente` (`id_cliente`),
   CONSTRAINT `fk_ventas_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `Clientes` (`id_cliente`)
 )
+
+drop table if EXISTS Ventas;

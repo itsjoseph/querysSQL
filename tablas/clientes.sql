@@ -11,3 +11,5 @@ CREATE TABLE `Clientes` (
   `saldo_pendiente_total` decimal(10,2) DEFAULT 0.00,
   PRIMARY KEY (`id_cliente`)
 )
+
+drop table if EXISTS Clientes;

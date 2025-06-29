@@ -16,3 +16,5 @@ CREATE TABLE `Adeudos` (
   CONSTRAINT `fk_adeudos_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `Clientes` (`id_cliente`),
   CONSTRAINT `fk_adeudos_venta` FOREIGN KEY (`id_venta_origen`) REFERENCES `Ventas` (`id_venta`)
 ) 
+
+drop table if EXISTS Adeudos;

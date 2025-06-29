@@ -10,3 +10,4 @@ CREATE TABLE `Pagos` (
   CONSTRAINT `fk_pagos_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `Clientes` (`id_cliente`)
 ) 
 
+drop table if EXISTS Pagos;
