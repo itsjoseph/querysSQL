@@ -7,6 +7,7 @@ CREATE TABLE `Clientes` (
   `correo_electronico` varchar(255) DEFAULT NULL,
   `direccion` varchar(255) DEFAULT NULL,
   `estatus` varchar(50) DEFAULT 'Activo',
+  `fecha_alta` DATE NULL,
   `saldo_pendiente_total` decimal(10,2) DEFAULT 0.00,
   PRIMARY KEY (`id_cliente`)
 )
