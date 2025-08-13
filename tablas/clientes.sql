@@ -9,6 +9,7 @@ CREATE TABLE `Clientes` (
   `estatus` varchar(50) DEFAULT 'Activo',
   `fecha_alta` DATE NULL,
   `saldo_pendiente_total` decimal(10,2) DEFAULT 0.00,
+  `usuario_asignado` varchar(100) NOT NULL,
   PRIMARY KEY (`id_cliente`)
 )
 
