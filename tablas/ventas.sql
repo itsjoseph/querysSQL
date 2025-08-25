@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS `Ventas`;
+
 CREATE TABLE `Ventas` (
   `id_venta` varchar(50) NOT NULL,
   `id_cliente` varchar(50) NOT NULL,
@@ -9,5 +11,3 @@ CREATE TABLE `Ventas` (
   KEY `fk_ventas_cliente` (`id_cliente`),
   CONSTRAINT `fk_ventas_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `Clientes` (`id_cliente`)
 )
-
-drop table if EXISTS Ventas;

@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS `Adeudos`;
+
 CREATE TABLE `Adeudos` (
   `id_adeudo` varchar(50) NOT NULL,
   `id_venta_origen` varchar(50) NOT NULL,
@@ -15,6 +17,5 @@ CREATE TABLE `Adeudos` (
   CONSTRAINT `fk_adeudo_venta` FOREIGN KEY (`id_venta_origen`) REFERENCES `Ventas` (`id_venta`),
   CONSTRAINT `fk_adeudos_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `Clientes` (`id_cliente`),
   CONSTRAINT `fk_adeudos_venta` FOREIGN KEY (`id_venta_origen`) REFERENCES `Ventas` (`id_venta`)
-) 
+)
 
-drop table if EXISTS Adeudos;

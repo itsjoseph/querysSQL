@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS `Pagos`;
+
 CREATE TABLE `Pagos` (
   `id_pago` varchar(50) NOT NULL,
   `fecha_pago` date NOT NULL,
@@ -8,6 +10,4 @@ CREATE TABLE `Pagos` (
   PRIMARY KEY (`id_pago`),
   KEY `fk_pagos_cliente` (`id_cliente`),
   CONSTRAINT `fk_pagos_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `Clientes` (`id_cliente`)
-) 
-
-drop table if EXISTS Pagos;
+)
