@@ -1,16 +1,11 @@
-CREATE DEFINER=`conor`@`localhost` TRIGGER after_insert_venta_crea_adeudo
+CREATE TRIGGER after_insert_venta_crea_adeudo
 AFTER INSERT ON Ventas
 FOR EACH ROW
 BEGIN
     DECLARE nuevo_id_adeudo VARCHAR(50);
     DECLARE fecha_venc DATE;
-
-    
     SET nuevo_id_adeudo = UUID();
-
-    
     SET fecha_venc = DATE_ADD(NEW.fecha_venta, INTERVAL 30 DAY);
-
     
     INSERT INTO Adeudos (
         id_adeudo,
