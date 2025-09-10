@@ -4,7 +4,7 @@ FOR EACH ROW
 BEGIN
     DECLARE nuevo_id_adeudo VARCHAR(50);
     DECLARE fecha_venc DATE;
-    SET nuevo_id_adeudo = UUID();
+    SET nuevo_id_adeudo = CONCAT('LCDEU-', UUID());
     SET fecha_venc = DATE_ADD(NEW.fecha_venta, INTERVAL 30 DAY);
     
     INSERT INTO Adeudos (
