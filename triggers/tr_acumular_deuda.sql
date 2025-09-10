@@ -1,4 +1,4 @@
-CREATE DEFINER=`conor`@`localhost` TRIGGER tr_acumular_deuda
+CREATE TRIGGER tr_acumular_deuda
 AFTER INSERT ON Adeudos
 FOR EACH ROW
 BEGIN
