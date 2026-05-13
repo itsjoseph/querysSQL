@@ -10,7 +10,7 @@ BEGIN
   WHERE id_cliente = NEW.id_cliente;
 
   -- Solo actualizar si el saldo es mayor que 0
-  IF saldo_actual > 0 THEN
+  IF saldo_actual > 0 AND NEW.monto_pagado <= saldo_actual THEN
     UPDATE Clientes
     SET saldo_pendiente_total = saldo_pendiente_total - NEW.monto_pagado
     WHERE id_cliente = NEW.id_cliente;
