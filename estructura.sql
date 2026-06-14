@@ -24,12 +24,16 @@ CREATE TABLE `Adeudos` (
   `fecha_vencimiento` datetime DEFAULT NULL,
   `estado_adeudo` varchar(20) NOT NULL DEFAULT 'ABIERTO',
   `notas` text DEFAULT NULL,
+  `eliminado_en` datetime DEFAULT NULL,
+  `eliminado_por` varchar(50) DEFAULT NULL,
+  `motivo_eliminacion` varchar(500) DEFAULT NULL,
   PRIMARY KEY (`id_adeudo`),
   KEY `fk_adeudo_venta` (`id_venta_origen`),
   KEY `fk_adeudo_cliente` (`id_cliente`),
   KEY `idx_adeudos_cliente_fifo` (`id_cliente`,`fecha_origen`),
   KEY `fk_adeudo_estado` (`estado_adeudo`),
   KEY `fk_adeudo_tipo_origen` (`tipo_origen`),
+  KEY `idx_adeudos_no_eliminados` (`eliminado_en`),
   CONSTRAINT `fk_adeudo_estado` FOREIGN KEY (`estado_adeudo`) REFERENCES `EstadoAdeudo` (`codigo`),
   CONSTRAINT `fk_adeudo_tipo_origen` FOREIGN KEY (`tipo_origen`) REFERENCES `TipoOrigenAdeudo` (`codigo`),
   CONSTRAINT `fk_adeudos_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `Clientes` (`id_cliente`),
@@ -59,6 +63,21 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+DROP TABLE IF EXISTS `Administradores`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Administradores` (
+  `id_admin` varchar(50) NOT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `estado` varchar(255) DEFAULT NULL,
+  `fecha_actualizacion` datetime(6) DEFAULT NULL,
+  `fecha_creacion` datetime(6) DEFAULT NULL,
+  `nombre` varchar(255) DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL,
+  `username` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id_admin`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `Auditoria`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -75,7 +94,7 @@ CREATE TABLE `Auditoria` (
   KEY `idx_auditoria_fecha` (`fecha`),
   KEY `idx_auditoria_usuario_fecha` (`usuario`,`fecha`),
   KEY `idx_auditoria_accion` (`accion`)
-) ENGINE=InnoDB AUTO_INCREMENT=144 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=668 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `Clientes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -89,17 +108,45 @@ CREATE TABLE `Clientes` (
   `correo_electronico` varchar(255) DEFAULT NULL,
   `direccion` varchar(255) DEFAULT NULL,
   `estatus` varchar(20) DEFAULT 'ACTIVO',
-  `saldo_pendiente_total` decimal(10,2) DEFAULT 0.00,
+  `saldo_pendiente_total` decimal(12,2) NOT NULL DEFAULT 0.00,
   `fecha_alta` datetime DEFAULT NULL,
   `usuario_asignado` varchar(255) NOT NULL,
   `latitud` decimal(10,7) DEFAULT NULL,
   `longitud` decimal(10,7) DEFAULT NULL,
+  `eliminado_en` datetime DEFAULT NULL,
+  `eliminado_por` varchar(50) DEFAULT NULL,
+  `motivo_eliminacion` varchar(500) DEFAULT NULL,
   PRIMARY KEY (`id_cliente`),
   KEY `fk_clientes_usuario_asignado` (`usuario_asignado`),
   KEY `fk_cliente_estatus` (`estatus`),
+  KEY `idx_clientes_no_eliminados` (`eliminado_en`),
   CONSTRAINT `fk_cliente_estatus` FOREIGN KEY (`estatus`) REFERENCES `EstadoCliente` (`codigo`),
   CONSTRAINT `fk_clientes_usuario_asignado` FOREIGN KEY (`usuario_asignado`) REFERENCES `Usuarios` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `EmailsPendientes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `EmailsPendientes` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `tipo` varchar(40) NOT NULL,
+  `destinatario` varchar(150) NOT NULL,
+  `asunto` varchar(255) NOT NULL,
+  `cuerpo` text NOT NULL,
+  `adjunto` longblob DEFAULT NULL,
+  `adjunto_nombre` varchar(255) DEFAULT NULL,
+  `adjunto_mime` varchar(100) DEFAULT NULL,
+  `estado` varchar(20) NOT NULL DEFAULT 'PENDIENTE',
+  `intentos` int(11) NOT NULL DEFAULT 0,
+  `proximo_intento_en` datetime NOT NULL DEFAULT current_timestamp(),
+  `creado_en` datetime NOT NULL DEFAULT current_timestamp(),
+  `enviado_en` datetime DEFAULT NULL,
+  `error_ultimo` varchar(500) DEFAULT NULL,
+  `referencia_id` varchar(64) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_outbox_picker` (`estado`,`proximo_intento_en`),
+  KEY `idx_outbox_referencia` (`referencia_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `EstadoAdeudo`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -149,10 +196,15 @@ CREATE TABLE `Pagos` (
   `notas` text DEFAULT NULL,
   `id_cliente` varchar(50) NOT NULL,
   `usuario_cobrador` varchar(255) NOT NULL,
+  `eliminado_en` datetime DEFAULT NULL,
+  `eliminado_por` varchar(50) DEFAULT NULL,
+  `motivo_eliminacion` varchar(500) DEFAULT NULL,
+  `creado_en` datetime DEFAULT current_timestamp(),
   PRIMARY KEY (`id_pago`),
   KEY `fk_pagos_cliente` (`id_cliente`),
   KEY `fk_pagos_metodo_pago` (`metodo_pago`),
   KEY `fk_pagos_usuario_cobrador` (`usuario_cobrador`),
+  KEY `idx_pagos_no_eliminados` (`eliminado_en`),
   CONSTRAINT `fk_pagos_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `Clientes` (`id_cliente`),
   CONSTRAINT `fk_pagos_metodo_pago` FOREIGN KEY (`metodo_pago`) REFERENCES `MetodoPago` (`codigo`) ON UPDATE CASCADE,
   CONSTRAINT `fk_pagos_usuario_cobrador` FOREIGN KEY (`usuario_cobrador`) REFERENCES `Usuarios` (`username`)
@@ -205,7 +257,29 @@ CREATE TABLE `PagosAplicaciones` (
   CONSTRAINT `fk_pa_adeudo` FOREIGN KEY (`id_adeudo`) REFERENCES `Adeudos` (`id_adeudo`),
   CONSTRAINT `fk_pa_pago` FOREIGN KEY (`id_pago`) REFERENCES `Pagos` (`id_pago`),
   CONSTRAINT `chk_pa_monto` CHECK (`monto_aplicado` > 0)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `Pagos_Suscripcion`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Pagos_Suscripcion` (
+  `id_pago_susc` bigint(20) NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) NOT NULL,
+  `monto` decimal(10,2) NOT NULL,
+  `moneda` char(3) NOT NULL DEFAULT 'MXN',
+  `proveedor` varchar(20) NOT NULL,
+  `proveedor_order_id` varchar(100) NOT NULL,
+  `estado` varchar(20) NOT NULL DEFAULT 'CREADA',
+  `dias_otorgados` int(11) NOT NULL,
+  `creado_en` timestamp NOT NULL DEFAULT current_timestamp(),
+  `confirmado_en` timestamp NULL DEFAULT NULL,
+  `raw_payload` text DEFAULT NULL,
+  PRIMARY KEY (`id_pago_susc`),
+  UNIQUE KEY `uq_pagos_susc_order` (`proveedor`,`proveedor_order_id`),
+  KEY `idx_pagos_susc_user_fecha` (`username`,`creado_en` DESC),
+  KEY `idx_pagos_susc_estado` (`estado`),
+  CONSTRAINT `fk_pagos_susc_user` FOREIGN KEY (`username`) REFERENCES `Usuarios` (`username`)
+) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `PasswordResetToken`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -220,6 +294,20 @@ CREATE TABLE `PasswordResetToken` (
   KEY `idx_prt_username_expires` (`username`,`expires_at`),
   CONSTRAINT `fk_prt_username` FOREIGN KEY (`username`) REFERENCES `Usuarios` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `RecordatoriosVencimiento`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `RecordatoriosVencimiento` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `id_cliente` varchar(64) NOT NULL,
+  `dias_antes` int(11) NOT NULL,
+  `fecha_target` date NOT NULL,
+  `enviado_en` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_recordatorio` (`id_cliente`,`dias_antes`,`fecha_target`),
+  CONSTRAINT `fk_recordatorio_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `Clientes` (`id_cliente`)
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `TipoOrigenAdeudo`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -251,8 +339,19 @@ CREATE TABLE `Usuarios` (
   `role` varchar(20) NOT NULL DEFAULT 'ADMIN',
   `activo` tinyint(1) NOT NULL DEFAULT 1,
   `creado_por` varchar(50) DEFAULT NULL,
+  `totp_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `totp_secret` varchar(64) DEFAULT NULL,
+  `estado_cuenta` varchar(255) DEFAULT NULL,
+  `fecha_inicio_prueba` date DEFAULT NULL,
+  `aviso_12d_enviado_en` datetime DEFAULT NULL,
+  `recordatorio_5d_enviado_en` datetime DEFAULT NULL,
+  `recordatorio_2d_enviado_en` datetime DEFAULT NULL,
   PRIMARY KEY (`id_usuario`),
-  UNIQUE KEY `username` (`username`)
+  UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `uk_usuarios_email` (`email`),
+  KEY `idx_usuarios_totp_enabled` (`totp_enabled`),
+  KEY `idx_usuarios_estado_cuenta` (`estado_cuenta`),
+  KEY `idx_usuarios_inicio_prueba` (`fecha_inicio_prueba`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `Ventas`;
@@ -266,9 +365,14 @@ CREATE TABLE `Ventas` (
   `descripcion` varchar(500) NOT NULL,
   `notas` text DEFAULT NULL,
   `usuario_registra` varchar(255) NOT NULL,
+  `eliminado_en` datetime DEFAULT NULL,
+  `eliminado_por` varchar(50) DEFAULT NULL,
+  `motivo_eliminacion` varchar(500) DEFAULT NULL,
+  `creado_en` datetime DEFAULT current_timestamp(),
   PRIMARY KEY (`id_venta`),
   KEY `fk_ventas_cliente` (`id_cliente`),
   KEY `fk_ventas_usuario_registra` (`usuario_registra`),
+  KEY `idx_ventas_no_eliminados` (`eliminado_en`),
   CONSTRAINT `fk_ventas_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `Clientes` (`id_cliente`),
   CONSTRAINT `fk_ventas_usuario_registra` FOREIGN KEY (`usuario_registra`) REFERENCES `Usuarios` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
