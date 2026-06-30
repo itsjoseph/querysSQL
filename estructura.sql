@@ -94,7 +94,43 @@ CREATE TABLE `Auditoria` (
   KEY `idx_auditoria_fecha` (`fecha`),
   KEY `idx_auditoria_usuario_fecha` (`usuario`,`fecha`),
   KEY `idx_auditoria_accion` (`accion`)
-) ENGINE=InnoDB AUTO_INCREMENT=668 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1005 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `CajaSesion`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `CajaSesion` (
+  `id` varchar(50) NOT NULL,
+  `equipo` varchar(50) NOT NULL,
+  `terminal` varchar(40) NOT NULL,
+  `usuario` varchar(50) NOT NULL,
+  `abierta_en` datetime NOT NULL DEFAULT current_timestamp(),
+  `cerrada_en` datetime DEFAULT NULL,
+  `fondo_inicial` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `efectivo_esperado` decimal(12,2) DEFAULT NULL,
+  `efectivo_contado` decimal(12,2) DEFAULT NULL,
+  `diferencia` decimal(12,2) DEFAULT NULL,
+  `estado` varchar(12) NOT NULL DEFAULT 'ABIERTA',
+  PRIMARY KEY (`id`),
+  KEY `idx_caja_equipo_estado` (`equipo`,`estado`),
+  CONSTRAINT `chk_caja_estado` CHECK (`estado` in ('ABIERTA','CERRADA'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `Categoria`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Categoria` (
+  `id` varchar(50) NOT NULL,
+  `equipo` varchar(50) NOT NULL,
+  `nombre` varchar(80) NOT NULL,
+  `tint_bg` varchar(9) DEFAULT NULL,
+  `tint_fg` varchar(9) DEFAULT NULL,
+  `activa` tinyint(1) NOT NULL DEFAULT 1,
+  `eliminado_en` datetime DEFAULT NULL,
+  `creado_en` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_categoria_equipo` (`equipo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `Clientes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -116,6 +152,7 @@ CREATE TABLE `Clientes` (
   `eliminado_en` datetime DEFAULT NULL,
   `eliminado_por` varchar(50) DEFAULT NULL,
   `motivo_eliminacion` varchar(500) DEFAULT NULL,
+  `es_publico_general` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id_cliente`),
   KEY `fk_clientes_usuario_asignado` (`usuario_asignado`),
   KEY `fk_cliente_estatus` (`estatus`),
@@ -146,7 +183,7 @@ CREATE TABLE `EmailsPendientes` (
   PRIMARY KEY (`id`),
   KEY `idx_outbox_picker` (`estado`,`proximo_intento_en`),
   KEY `idx_outbox_referencia` (`referencia_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=63 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `EstadoAdeudo`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -172,6 +209,15 @@ CREATE TABLE `EstadoCliente` (
   PRIMARY KEY (`codigo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `FolioSecuencia`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `FolioSecuencia` (
+  `serie` varchar(40) NOT NULL,
+  `ultimo_folio` bigint(20) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`serie`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `MetodoPago`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -184,6 +230,43 @@ CREATE TABLE `MetodoPago` (
   PRIMARY KEY (`id_metodo_pago`),
   UNIQUE KEY `codigo` (`codigo`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `MovimientoCaja`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `MovimientoCaja` (
+  `id` varchar(50) NOT NULL,
+  `caja_sesion_id` varchar(50) NOT NULL,
+  `tipo` varchar(12) NOT NULL,
+  `monto` decimal(12,2) NOT NULL,
+  `metodo_pago` varchar(20) DEFAULT NULL,
+  `referencia` varchar(64) DEFAULT NULL,
+  `creado_en` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_movcaja_sesion` (`caja_sesion_id`),
+  CONSTRAINT `fk_movcaja_sesion` FOREIGN KEY (`caja_sesion_id`) REFERENCES `CajaSesion` (`id`),
+  CONSTRAINT `chk_movcaja_tipo` CHECK (`tipo` in ('VENTA','RETIRO','INGRESO','AJUSTE','ABONO'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `MovimientoInventario`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `MovimientoInventario` (
+  `id` varchar(50) NOT NULL,
+  `equipo` varchar(50) NOT NULL,
+  `producto_id` varchar(50) NOT NULL,
+  `tipo` varchar(12) NOT NULL,
+  `cantidad` int(11) NOT NULL,
+  `costo_unitario` decimal(12,2) DEFAULT NULL,
+  `existencia_resultante` int(11) NOT NULL,
+  `referencia` varchar(60) DEFAULT NULL,
+  `usuario` varchar(50) DEFAULT NULL,
+  `creado_en` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_movinv_producto` (`producto_id`,`creado_en`),
+  KEY `idx_movinv_equipo` (`equipo`),
+  CONSTRAINT `fk_movinv_producto` FOREIGN KEY (`producto_id`) REFERENCES `Producto` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `Pagos`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -257,7 +340,7 @@ CREATE TABLE `PagosAplicaciones` (
   CONSTRAINT `fk_pa_adeudo` FOREIGN KEY (`id_adeudo`) REFERENCES `Adeudos` (`id_adeudo`),
   CONSTRAINT `fk_pa_pago` FOREIGN KEY (`id_pago`) REFERENCES `Pagos` (`id_pago`),
   CONSTRAINT `chk_pa_monto` CHECK (`monto_aplicado` > 0)
-) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `Pagos_Suscripcion`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -295,6 +378,83 @@ CREATE TABLE `PasswordResetToken` (
   CONSTRAINT `fk_prt_username` FOREIGN KEY (`username`) REFERENCES `Usuarios` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `Producto`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Producto` (
+  `id` varchar(50) NOT NULL,
+  `equipo` varchar(50) NOT NULL,
+  `categoria_id` varchar(50) DEFAULT NULL,
+  `nombre` varchar(150) NOT NULL,
+  `sku` varchar(60) DEFAULT NULL,
+  `codigo_barras` varchar(60) DEFAULT NULL,
+  `precio` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `existencia` int(11) NOT NULL DEFAULT 0,
+  `impuesto_tasa` decimal(5,4) NOT NULL DEFAULT 0.1600,
+  `clave_prod_sat` varchar(20) DEFAULT NULL,
+  `unidad_sat` varchar(20) DEFAULT NULL,
+  `activo` tinyint(1) NOT NULL DEFAULT 1,
+  `eliminado_en` datetime DEFAULT NULL,
+  `creado_en` datetime NOT NULL DEFAULT current_timestamp(),
+  `costo_promedio` decimal(12,2) NOT NULL DEFAULT 0.00,
+  PRIMARY KEY (`id`),
+  KEY `idx_producto_equipo` (`equipo`),
+  KEY `idx_producto_categoria` (`categoria_id`),
+  CONSTRAINT `fk_producto_categoria` FOREIGN KEY (`categoria_id`) REFERENCES `Categoria` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `ProductoCodigoUnidad`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ProductoCodigoUnidad` (
+  `id` varchar(50) NOT NULL,
+  `equipo` varchar(50) NOT NULL,
+  `producto_id` varchar(50) NOT NULL,
+  `codigo_barras` varchar(60) NOT NULL,
+  `vendido` tinyint(1) NOT NULL DEFAULT 0,
+  `venta_id` varchar(50) DEFAULT NULL,
+  `vendido_en` datetime DEFAULT NULL,
+  `creado_en` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_codunidad_equipo_codigo` (`equipo`,`codigo_barras`),
+  KEY `idx_codunidad_producto` (`producto_id`),
+  KEY `idx_codunidad_equipo` (`equipo`),
+  CONSTRAINT `fk_codunidad_producto` FOREIGN KEY (`producto_id`) REFERENCES `Producto` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `Promocion`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Promocion` (
+  `id` varchar(50) NOT NULL,
+  `equipo` varchar(50) NOT NULL,
+  `nombre` varchar(80) NOT NULL,
+  `descripcion` varchar(200) DEFAULT NULL,
+  `tipo` varchar(10) NOT NULL,
+  `valor` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `activa` tinyint(1) NOT NULL DEFAULT 1,
+  `eliminado_en` datetime DEFAULT NULL,
+  `creado_en` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_promocion_equipo` (`equipo`,`eliminado_en`),
+  CONSTRAINT `chk_promocion_tipo` CHECK (`tipo` in ('PCT','FIJO')),
+  CONSTRAINT `chk_promocion_valor` CHECK (`valor` >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `RecordatoriosVencidos`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `RecordatoriosVencidos` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `id_cliente` varchar(64) NOT NULL,
+  `fecha_target` date NOT NULL,
+  `enviado_en` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_recordatorio_vencido` (`id_cliente`,`fecha_target`),
+  KEY `idx_recordatorio_vencido_cliente` (`id_cliente`,`fecha_target`),
+  CONSTRAINT `fk_recordatorio_vencido_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `Clientes` (`id_cliente`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `RecordatoriosVencimiento`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -307,7 +467,7 @@ CREATE TABLE `RecordatoriosVencimiento` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_recordatorio` (`id_cliente`,`dias_antes`,`fecha_target`),
   CONSTRAINT `fk_recordatorio_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `Clientes` (`id_cliente`)
-) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `TipoOrigenAdeudo`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -340,7 +500,7 @@ CREATE TABLE `Usuarios` (
   `activo` tinyint(1) NOT NULL DEFAULT 1,
   `creado_por` varchar(50) DEFAULT NULL,
   `totp_enabled` tinyint(1) NOT NULL DEFAULT 0,
-  `totp_secret` varchar(64) DEFAULT NULL,
+  `totp_secret` varchar(255) DEFAULT NULL,
   `estado_cuenta` varchar(255) DEFAULT NULL,
   `fecha_inicio_prueba` date DEFAULT NULL,
   `aviso_12d_enviado_en` datetime DEFAULT NULL,
@@ -354,6 +514,26 @@ CREATE TABLE `Usuarios` (
   KEY `idx_usuarios_inicio_prueba` (`fecha_inicio_prueba`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `VentaDetalle`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `VentaDetalle` (
+  `id` varchar(50) NOT NULL,
+  `id_venta` varchar(64) NOT NULL,
+  `producto_id` varchar(50) NOT NULL,
+  `nombre_snapshot` varchar(150) NOT NULL,
+  `cantidad` int(11) NOT NULL,
+  `precio_unitario` decimal(12,2) NOT NULL,
+  `descuento_linea` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `impuesto_tasa` decimal(5,4) NOT NULL DEFAULT 0.0000,
+  `importe` decimal(12,2) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `fk_ventadetalle_producto` (`producto_id`),
+  KEY `idx_ventadetalle_venta` (`id_venta`),
+  CONSTRAINT `fk_ventadetalle_producto` FOREIGN KEY (`producto_id`) REFERENCES `Producto` (`id`),
+  CONSTRAINT `fk_ventadetalle_venta` FOREIGN KEY (`id_venta`) REFERENCES `Ventas` (`id_venta`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `Ventas`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -362,6 +542,15 @@ CREATE TABLE `Ventas` (
   `id_cliente` varchar(50) NOT NULL,
   `fecha_venta` datetime DEFAULT NULL,
   `monto_total` decimal(10,2) NOT NULL,
+  `tipo_venta` varchar(20) NOT NULL DEFAULT 'CREDITO',
+  `metodo_pago` varchar(20) DEFAULT NULL,
+  `comprador_nombre` varchar(150) DEFAULT NULL,
+  `serie` varchar(40) DEFAULT NULL,
+  `folio` bigint(20) DEFAULT NULL,
+  `subtotal` decimal(12,2) DEFAULT NULL,
+  `descuento_total` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `impuesto_total` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `caja_sesion_id` varchar(50) DEFAULT NULL,
   `descripcion` varchar(500) NOT NULL,
   `notas` text DEFAULT NULL,
   `usuario_registra` varchar(255) NOT NULL,
@@ -373,18 +562,23 @@ CREATE TABLE `Ventas` (
   KEY `fk_ventas_cliente` (`id_cliente`),
   KEY `fk_ventas_usuario_registra` (`usuario_registra`),
   KEY `idx_ventas_no_eliminados` (`eliminado_en`),
+  KEY `fk_venta_metodo_pago` (`metodo_pago`),
+  KEY `fk_venta_caja_sesion` (`caja_sesion_id`),
+  CONSTRAINT `fk_venta_caja_sesion` FOREIGN KEY (`caja_sesion_id`) REFERENCES `CajaSesion` (`id`),
+  CONSTRAINT `fk_venta_metodo_pago` FOREIGN KEY (`metodo_pago`) REFERENCES `MetodoPago` (`codigo`),
   CONSTRAINT `fk_ventas_cliente` FOREIGN KEY (`id_cliente`) REFERENCES `Clientes` (`id_cliente`),
-  CONSTRAINT `fk_ventas_usuario_registra` FOREIGN KEY (`usuario_registra`) REFERENCES `Usuarios` (`username`)
+  CONSTRAINT `fk_ventas_usuario_registra` FOREIGN KEY (`usuario_registra`) REFERENCES `Usuarios` (`username`),
+  CONSTRAINT `chk_venta_contado_metodo` CHECK (`tipo_venta` = 'CONTADO' and `metodo_pago` is not null or `tipo_venta` <> 'CONTADO')
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = utf8mb3 */ ;
+/*!50003 SET character_set_results = utf8mb3 */ ;
+/*!50003 SET collation_connection  = utf8mb3_general_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'IGNORE_SPACE,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`conor`@`localhost`*/ /*!50003 TRIGGER after_insert_venta_crea_adeudo
 AFTER INSERT ON Ventas
@@ -392,32 +586,35 @@ FOR EACH ROW
 BEGIN
     DECLARE nuevo_id_adeudo VARCHAR(50);
     DECLARE fecha_venc DATE;
-    SET nuevo_id_adeudo = CONCAT('LCDEU-', UUID());
-    SET fecha_venc = DATE_ADD(NEW.fecha_venta, INTERVAL 30 DAY);
 
-    INSERT INTO Adeudos (
-        id_adeudo,
-        id_venta_origen,
-        tipo_origen,
-        id_cliente,
-        monto_inicial,
-        saldo_pendiente,
-        fecha_origen,
-        fecha_vencimiento,
-        estado_adeudo,
-        notas
-    ) VALUES (
-        nuevo_id_adeudo,
-        NEW.id_venta,
-        'VENTA',           -- explícito; el DEFAULT existe pero no nos apoyamos en él
-        NEW.id_cliente,
-        NEW.monto_total,
-        NEW.monto_total,
-        NEW.fecha_venta,
-        fecha_venc,
-        'ABIERTO',
-        NEW.notas
-    );
+    IF NEW.tipo_venta = 'CREDITO' THEN
+        SET nuevo_id_adeudo = CONCAT('LCDEU-', UUID());
+        SET fecha_venc = DATE_ADD(NEW.fecha_venta, INTERVAL 30 DAY);
+
+        INSERT INTO Adeudos (
+            id_adeudo,
+            id_venta_origen,
+            tipo_origen,
+            id_cliente,
+            monto_inicial,
+            saldo_pendiente,
+            fecha_origen,
+            fecha_vencimiento,
+            estado_adeudo,
+            notas
+        ) VALUES (
+            nuevo_id_adeudo,
+            NEW.id_venta,
+            'VENTA',
+            NEW.id_cliente,
+            NEW.monto_total,
+            NEW.monto_total,
+            NEW.fecha_venta,
+            fecha_venc,
+            'ABIERTO',
+            NEW.notas
+        );
+    END IF;
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
